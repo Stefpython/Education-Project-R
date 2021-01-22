@@ -104,6 +104,8 @@ sort(bag.stmath$importance[,1])
 comp_tree_bag = rbind(modelfitmetrics_stmathtree,modelfitmetrics_stmathbag)
 comp_tree_bag
 
+#RandomForest still needs to be done. For that, set mtry = (ncol(stmathtree_train)-1) in the bagging formula
+
 
 
 ############ For the lines of code below, I tried doing LMs, I am not sure if lines 111 to 142 are necessary to re-clean the data to run lms, 
