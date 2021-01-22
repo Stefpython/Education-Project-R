@@ -9,7 +9,8 @@
 
 #1 - Naming conventions:
 Example of variable name: 
-  lmlmlmlmlmlm
+  for each model specific result, add the model name at the end of the variable.  eg: mod_logit, mod_knn, mod_tree
+  for the predictive power indicators too, add the model name  eg.cv_knn, cv_nb  
  
  
  
@@ -23,5 +24,5 @@ We face a classification problem:
                Sensitivity
                Specificity
                Kappa
-               for every model 
+               for every model (Using both hold out sampling and cross validation)
                
