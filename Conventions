@@ -1,0 +1,27 @@
+#This document contains all conventions for group work
+
+#Content: 
+1 - Variable naming conventions: 
+2 - Variables of interest
+
+
+
+
+#1 - Naming conventions:
+Example of variable name: 
+  lmlmlmlmlmlm
+ 
+ 
+ 
+ 
+
+#2 - Variables of interest
+We look at test errors
+We face a classification problem:
+  --> pull out Accuracy,
+               Error rate
+               Sensitivity
+               Specificity
+               Kappa
+               for every model 
+               
