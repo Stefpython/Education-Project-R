@@ -50,7 +50,7 @@ tree.stmath=tree(schoolsup~.,
              data=stmathtree_train) ## Estimates the classification tree
 
 summary(tree.stmath)
-## the misclassification reported is the entroy and it is aournd 7%
+#The misclassification reported is the entropy and it is aournd 7%
 plot(tree.stmath)
 text(tree.stmath, pretty=0)
 #Most important variables: age+health+G3+studytime+goout+Fedu+Medu+health+Fjob+Walc+famrel+internet+famsup+famsize+failures+paid
@@ -103,6 +103,11 @@ sort(bag.stmath$importance[,1])
 #Comparing Tree and Bagging
 comp_tree_bag = rbind(modelfitmetrics_stmathtree,modelfitmetrics_stmathbag)
 comp_tree_bag
+
+
+
+############ For the lines of code below, I tried doing LMs, I am not sure if lines 111 to 142 are necessary to re-clean the data to run lms, 
+#I stopped here before trying in depth.
 
 is.numeric(stmath$age)
 is.numeric(stmath$Medu)
