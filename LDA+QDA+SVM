@@ -1,0 +1,216 @@
+###LDA + QDA
+
+#Preparing the data
+attach(stmath)
+stmath$schoolsup = as.factor(stmath$schoolsup)
+stmath$sex = as.factor(stmath$sex)
+stmath$guardian = as.factor(stmath$guardian)
+stmath$famsup = as.factor(stmath$famsup)
+stmath$paid = as.factor(stmath$paid)
+stmath$activities = as.factor(stmath$activities)
+stmath$nursery = as.factor(stmath$nursery)
+stmath$higher = as.factor(stmath$higher)
+stmath$internet = as.factor(stmath$internet)
+stmath$romantic = as.factor(stmath$romantic)
+stmath$school = as.factor(stmath$school)
+stmath$address = as.factor(stmath$address)
+stmath$famsize = as.factor(stmath$famsize)
+stmath$Pstatus = as.factor(stmath$Pstatus)
+stmath$Mjob = as.factor(stmath$Mjob)
+stmath$Fjob = as.factor(stmath$Fjob)
+stmath$reason = as.factor(stmath$reason)
+
+#LDA
+#Holdout Sampling - LDA
+library(MASS)
+
+#Creating the training and test data set
+library(caret) 
+set.seed(06)
+stratid=createDataPartition(stmath$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+stmathlda_train=stmath[stratid,] ## Creating the Training dataset
+stmathlda_test=stmath[-stratid,] ## Creating the test data set
+
+mod_lda = lda(paid~., data = stmathlda_train)
+mod_lda 
+
+pred_lda_ho = predict(mod_lda, newdata = stmathlda_test)
+head(pred_lda_ho$posterior)
+head(pred_lda_ho$class)
+
+lda_ho_conftable = table(pred_lda_ho$class, stmathlda_test$paid)
+lda_ho_conftable2 = confusionMatrix(as.factor(pred_lda_ho$class),as.factor(stmathlda_test$paid), 
+                                positive="1")
+lda_ho_conftable2
+
+lda_ho_acc = mean(pred_lda_ho$class==stmathlda_test$paid)
+lda_ho_err = 1-lda_ho_acc
+lda_ho_sens = unname(lda_ho_conftable2$table[2,2]/(colSums(lda_ho_conftable2$table))[2])
+lda_ho_spec =  unname(lda_ho_conftable2$table[1,1]/(colSums(lda_ho_conftable2$table))[1])
+lda_ho_kap = unname(lda_ho_conftable2$overall['Kappa'])
+
+lda_ho_modelfitmetrics = c(lda_ho_acc,lda_ho_err,lda_ho_sens,lda_ho_spec,lda_ho_kap)
+names(lda_ho_modelfitmetrics) = c('Accuracy', 'Error rate', 'Sensitivity', 'Specificity', 'Kappa')
+lda_ho_modelfitmetrics
+
+#CV - LDA
+require(caret)
+#10-fold
+set.seed(07)
+folds_lda_cv10 =createFolds(stmath$paid,k=10)
+
+lda_cv10 = sapply(folds_lda_cv10, function(x){
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  model=lda(paid~., data = trainset)
+  ppred=predict(model, testset)
+  obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
+                      positive="1")
+  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
+  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  return(metrics)
+})
+
+lda_cv10_modelfitmetrics = apply(lda_cv10,1,mean)
+lda_cv10_modelfitmetrics
+
+#5-fold
+set.seed(08)
+folds_lda_cv5 =createFolds(stmath$paid,k=5)
+
+lda_cv5 = sapply(folds_lda_cv5, function(x){
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  model=lda(paid~., data = trainset)
+  ppred=predict(model, testset)
+  obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
+                      positive="1")
+  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
+  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  return(metrics)
+})
+
+lda_cv5_modelfitmetrics = apply(lda_cv5,1,mean)
+lda_cv5_modelfitmetrics
+
+#LOOCV
+set.seed(09)
+folds_lda_cvlo =createFolds(stmath$paid,k=395)
+
+lda_cvlo = sapply(folds_lda_cvlo, function(x){
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  model=lda(paid~., data=trainset)
+  ppred=predict(model, testset)
+  obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
+                      positive="1")
+  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
+  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  return(metrics)
+})
+
+lda_cvlo_modelfitmetrics = apply(lda_cvlo,1,mean)
+lda_cvlo_modelfitmetrics
+
+comp_lda = rbind(lda_ho_modelfitmetrics,lda_cv10_modelfitmetrics, lda_cv5_modelfitmetrics, lda_cvlo_modelfitmetrics)
+comp_lda
+
+#QDA
+#Holdout Sampling - QDA
+#Creating the training and test data set
+set.seed(10)
+stratid=createDataPartition(stmath$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+stmathqda_train=stmath[stratid,] ## Creating the Training dataset
+stmathqda_test=stmath[-stratid,] ## Creating the test data set
+
+mod_qda = qda(paid~famsup+famsize+G3+reason+famsup:G3+famsup:reason,data = stmathqda_train)
+mod_qda 
+
+pred_qda_ho = predict(mod_qda, newdata = stmathqda_test)
+head(pred_qda_ho$posterior)
+head(pred_qda_ho$class)
+
+qda_ho_conftable = table(pred_qda_ho$class, stmathqda_test$paid)
+qda_ho_conftable2 = confusionMatrix(as.factor(pred_qda_ho$class),as.factor(stmathqda_test$paid), 
+                                    positive="1")
+qda_ho_conftable2
+
+qda_ho_acc = mean(pred_qda_ho$class==stmathqda_test$paid)
+qda_ho_err = 1-qda_ho_acc
+qda_ho_sens = unname(qda_ho_conftable2$table[2,2]/(colSums(qda_ho_conftable2$table))[2])
+qda_ho_spec =  unname(qda_ho_conftable2$table[1,1]/(colSums(qda_ho_conftable2$table))[1])
+qda_ho_kap = unname(qda_ho_conftable2$overall['Kappa'])
+
+qda_ho_modelfitmetrics = c(qda_ho_acc,qda_ho_err,qda_ho_sens,qda_ho_spec,qda_ho_kap)
+names(qda_ho_modelfitmetrics) = c('Accuracy', 'Error rate', 'Sensitivity', 'Specificity', 'Kappa')
+qda_ho_modelfitmetrics
+
+#CV - QDA
+#10-fold
+set.seed(11)
+folds_qda_cv10 =createFolds(stmath$paid,k=10)
+
+qda_cv10 = sapply(folds_qda_cv10, function(x){
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  model=qda(paid~famsup+famsize+G3+reason+famsup:G3+famsup:reason, data = trainset)
+  ppred=predict(model, testset)
+  obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
+                      positive="1")
+  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
+  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  return(metrics)
+})
+
+qda_cv10_modelfitmetrics = apply(qda_cv10,1,mean)
+qda_cv10_modelfitmetrics
+
+#5-fold
+set.seed(12)
+folds_qda_cv5 =createFolds(stmath$paid,k=5)
+
+qda_cv5 = sapply(folds_qda_cv5, function(x){
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  model=qda(paid~famsup+famsize+G3+reason+famsup:G3+famsup:reason, data = trainset)
+  ppred=predict(model, testset)
+  obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
+                      positive="1")
+  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
+  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  return(metrics)
+})
+
+qda_cv5_modelfitmetrics = apply(qda_cv5,1,mean)
+qda_cv5_modelfitmetrics
+
+#LOOCV
+set.seed(13)
+folds_qda_cvlo =createFolds(stmath$paid,k=395)
+
+qda_cvlo = sapply(folds_qda_cvlo, function(x){
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  model=qda(paid~famsup+famsize+G3+reason+famsup:G3+famsup:reason, data=trainset)
+  ppred=predict(model, testset)
+  obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
+                      positive="1")
+  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
+  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  return(metrics)
+})
+
+qda_cvlo_modelfitmetrics = apply(qda_cvlo,1,mean)
+qda_cvlo_modelfitmetrics
+
+comp_qda = rbind(qda_ho_modelfitmetrics,qda_cv10_modelfitmetrics, qda_cv5_modelfitmetrics, qda_cvlo_modelfitmetrics)
+comp_qda
+
+#Comparing LDA and QDA
+
+comp_ldaqda = rbind(comp_lda, comp_qda)
+comp_ldaqda
