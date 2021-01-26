@@ -1,3 +1,40 @@
+### Group Project: EDUCATION IN PORTUGUESE SCHOOLS
+#Can we predict students' likelihood of buying math tutor classes based on socio-demographic factors?
+
+getwd()
+setwd('C:/Users/stefa/OneDrive/Desktop/Docs/02_HEC/13_Second Semester/02_Data and Decision_Applied Analytics/04_Group project')
+
+stmath = read.csv('student-mat.csv', header = T, sep = ',')
+
+dim(stmath)
+names(stmath)
+
+  #0 - Data Manipulation
+stmath = as.data.frame(subset(na.omit(stmath), select = -c(G1, G2)))
+str(stmath)
+attach(stmath)
+
+stmath$schoolsup = as.factor(ifelse(schoolsup=='no', 0,1))
+stmath$sex = as.factor(ifelse(sex== 'M', 0,1))
+stmath$guardian = as.factor(ifelse(guardian == 'father', 0,1))
+stmath$famsup = as.factor(ifelse(famsup=='no', 0,1))
+stmath$paid = as.factor(ifelse(paid=='no', 0,1))
+stmath$activities = as.factor(ifelse(activities=='no', 0,1))
+stmath$nursery = as.factor(ifelse(nursery=='no', 0,1))
+stmath$higher = as.factor(ifelse(higher=='no', 0,1))
+stmath$internet = as.factor(ifelse(internet=='no', 0,1))
+stmath$romantic = as.factor(ifelse(romantic=='no', 0,1))
+
+stmath$school = as.factor(stmath$school)
+stmath$address = as.factor(stmath$address)
+stmath$famsize = as.factor(stmath$famsize)
+stmath$Pstatus = as.factor(stmath$Pstatus)
+stmath$Mjob = as.factor(stmath$Mjob)
+stmath$Fjob = as.factor(stmath$Fjob)
+stmath$reason = as.factor(stmath$reason)
+
+plot(stmath$paid)
+
 ###LDA + QDA
 
 #Preparing the data
@@ -67,8 +104,8 @@ lda_cv10 = sapply(folds_lda_cv10, function(x){
   ppred=predict(model, testset)
   obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1],(1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -87,8 +124,8 @@ lda_cv5 = sapply(folds_lda_cv5, function(x){
   ppred=predict(model, testset)
   obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -106,8 +143,8 @@ lda_cvlo = sapply(folds_lda_cvlo, function(x){
   ppred=predict(model, testset)
   obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -160,8 +197,8 @@ qda_cv10 = sapply(folds_qda_cv10, function(x){
   ppred=predict(model, testset)
   obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -180,8 +217,8 @@ qda_cv5 = sapply(folds_qda_cv5, function(x){
   ppred=predict(model, testset)
   obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -199,8 +236,8 @@ qda_cvlo = sapply(folds_qda_cvlo, function(x){
   ppred=predict(model, testset)
   obj=confusionMatrix(as.factor(ppred$class),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -306,8 +343,8 @@ svm_cv10 = sapply(svm_folds_cv10, function(x){
   ppred=predict(model, newdata=testset)
   obj=confusionMatrix(as.factor(ppred),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -325,8 +362,8 @@ svm_cv5 = sapply(svm_folds_cv5, function(x){
   ppred=predict(model, newdata=testset)
   obj=confusionMatrix(as.factor(ppred),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -344,8 +381,8 @@ svm_cvlo = sapply(svm_folds_cvlo, function(x){
   ppred=predict(model, newdata=testset)
   obj=confusionMatrix(as.factor(ppred),as.factor(testset$paid), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'] , unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate', 'Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -356,4 +393,3 @@ svm_cvlo_modelfitmetrics
 comp_svms = rbind(comp_svm_ho, svm_cv10_modelfitmetrics,svm_cv5_modelfitmetrics,svm_cvlo_modelfitmetrics)
 comp_svms
 comp_ldaqda
-comp_tree_bag_fr
