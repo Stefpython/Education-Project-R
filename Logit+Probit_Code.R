@@ -93,8 +93,8 @@ probit_cv10 = sapply(folds_probit_cv10, function(x)
   obj=confusionMatrix(as.factor(predclass_probit_CV10),as.factor(testset$paid), 
                       positive="1")
   
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -123,8 +123,8 @@ probit_cv5 = sapply(folds_probit_cv5, function(x)
   obj=confusionMatrix(as.factor(predclass_probit_CV5),as.factor(testset$paid), 
                       positive="1")
   
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -153,8 +153,8 @@ probit_cvlo = sapply(folds_probit_cvlo, function(x)
   obj=confusionMatrix(as.factor(predclass_probit_CVlo),as.factor(testset$paid), 
                       positive="1")
   
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -220,8 +220,8 @@ logit_cv10 = sapply(folds_logit_cv10, function(x)
   obj=confusionMatrix(as.factor(predclass_logit_CV10),as.factor(testset$paid), 
                       positive="1")
   
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -251,8 +251,8 @@ logit_cv5 = sapply(folds_logit_cv5, function(x)
   obj=confusionMatrix(as.factor(predclass_logit_CV5),as.factor(testset$paid), 
                       positive="1")
   
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
@@ -282,8 +282,8 @@ logit_cvlo = sapply(folds_logit_cvlo, function(x)
   obj=confusionMatrix(as.factor(predclass_logit_CVlo),as.factor(testset$paid), 
                       positive="1")
   
-  metrics=c(obj$overall[1], obj$byClass['Sensitivity'],obj$byClass['Specificity'] ,(1-obj$overall[1]) , obj$byClass[2])
-  names(metrics) = c('Accuracy', 'Sensitivity','Specificity', 'Error rate', 'Kappa')
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
   return(metrics)
 })
 
