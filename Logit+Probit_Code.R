@@ -306,8 +306,9 @@ comp_probit_logit
 ###Replicating the above with edited dataset, removing the negative coefficient variables
 ###obtained by Random Forest
 
-###Removing the negative coefficient variables from the stmath dataset; (nursery and traveltime)
-stmath_adj = as.data.frame(subset(na.omit(stmath), select = -c(nursery, traveltime)))
+###Removing the negative coefficient variables from the stmath dataset; (nursery and traveltime...)
+stmath_adj = as.data.frame(subset(na.omit(stmath), select = -c(nursery, freetime, absences, Fedu, 
+                                                               goout,school, guardian,romantic,internet, address,traveltime)))
 ###Checking again
 str(stmath_adj)
 dim(stmath_adj)
