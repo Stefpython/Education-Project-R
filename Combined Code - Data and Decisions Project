@@ -1423,7 +1423,8 @@ LESSnb_cvaccuracy
 #### Additional analysis for conclusion
 #Additional Computations
 getwd()
-setwd('C:/Users/stefa/OneDrive/Desktop/Docs/02_HEC/13_Second Semester/02_Data and Decision_Applied Analytics/04_Group project')
+setwd('~/Desktop')
+
 stmath = read.csv('student-mat.csv', header = T, sep = ',')
 
 dim(stmath)
