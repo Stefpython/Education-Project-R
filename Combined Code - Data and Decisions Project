@@ -1421,3 +1421,93 @@ LESSnb_cvaccuracy
 ## End of kNN and Naive Bayes section.
 
 #### Additional analysis for conclusion
+#Additional Computations
+getwd()
+setwd('C:/Users/stefa/OneDrive/Desktop/Docs/02_HEC/13_Second Semester/02_Data and Decision_Applied Analytics/04_Group project')
+stmath = read.csv('student-mat.csv', header = T, sep = ',')
+
+dim(stmath)
+names(stmath)
+stmath = as.data.frame(subset(na.omit(stmath), select = -c(G1, G2)))
+str(stmath)
+attach(stmath)
+
+
+#0 - Data Manipulation
+stmath = as.data.frame(subset(na.omit(stmath), select = -c(G1, G2)))
+str(stmath)
+attach(stmath)
+
+stmath$schoolsup = as.factor(ifelse(schoolsup=='no', 0,1))
+stmath$sex = as.factor(ifelse(sex== 'M', 0,1))
+stmath$guardian = as.factor(ifelse(guardian == 'father', 0,1))
+stmath$famsup = as.factor(ifelse(famsup=='no', 0,1))
+stmath$paid = as.factor(ifelse(paid=='no', 0,1))
+stmath$activities = as.factor(ifelse(activities=='no', 0,1))
+stmath$nursery = as.factor(ifelse(nursery=='no', 0,1))
+stmath$higher = as.factor(ifelse(higher=='no', 0,1))
+stmath$internet = as.factor(ifelse(internet=='no', 0,1))
+stmath$romantic = as.factor(ifelse(romantic=='no', 0,1))
+
+stmath$school = as.factor(stmath$school)
+stmath$address = as.factor(stmath$address)
+stmath$famsize = as.factor(stmath$famsize)
+stmath$Pstatus = as.factor(stmath$Pstatus)
+stmath$Mjob = as.factor(stmath$Mjob)
+stmath$Fjob = as.factor(stmath$Fjob)
+stmath$reason = as.factor(stmath$reason)
+
+stmath$schoolsup = as.numeric(stmath$schoolsup)
+stmath$sex = as.numeric(stmath$sex)
+stmath$guardian = as.numeric(stmath$guardian)
+stmath$famsup = as.numeric(stmath$famsup)
+stmath$paid = as.numeric(stmath$paid)
+stmath$activities = as.numeric(stmath$activities)
+stmath$nursery = as.numeric(stmath$nursery)
+stmath$higher = as.numeric(stmath$higher)
+stmath$internet = as.numeric(stmath$internet)
+stmath$romantic = as.numeric(stmath$romantic)
+
+#Bringing binary variable back to 1/0 instead of 2/1
+attach(stmath)
+stmath$schoolsup = ifelse(schoolsup==1, 0,1)
+stmath$sex = ifelse(sex== 1, 0,1)
+stmath$guardian = ifelse(guardian == 1, 0,1)
+stmath$famsup = ifelse(famsup==1, 0,1)
+stmath$paid = ifelse(paid==1, 0,1)
+stmath$activities = ifelse(activities==1, 0,1)
+stmath$nursery = ifelse(nursery==1, 0,1)
+stmath$higher = ifelse(higher==1, 0,1)
+stmath$internet = ifelse(internet==1, 0,1)
+stmath$romantic = ifelse(romantic==1, 0,1)
+
+
+#interesting statistics
+#famsup
+attach(stmath)
+mod_famsup = lm(stmath$paid~famsup+reason+famsize + G3 + famsup:G3 + famsup:reason, data = stmath)
+summary(mod_famsup)
+
+#Mjob + Fjob
+stmath$Fteach = as.factor(ifelse(stmath$Fjob == 'teacher', 1, 0))
+stmath$Mteach = as.factor(ifelse(stmath$Mjob == 'teacher', 1, 0))
+mod_mfteach = lm(paid~famsup+reason+famsize + G3 + famsup:G3 + famsup:reason + Mteach + Fteach + Mteach:Fteach, data = stmath)
+summary(mod_mfteach)
+
+#G3
+#New insight
+mod_g3 = lm(G3~., data = stmath)
+summary(mod_g3)
+
+#Old code - souce of error! Difference is actually not statistically significant
+subset_score_paid = subset(stmath, stmath$paid == '1')
+mean_score_paid = mean(subset_score_paid[,'G3'])
+mean_score_paid
+subset_score_nopaid = subset(stmath, stmath$paid == '0')
+mean_score_nopaid = mean(subset_score_nopaid[,'G3'])
+mean_score_nopaid
+
+#Reason
+stmath$coavail = as.factor(ifelse(stmath$reason == 'course', 1, 0))
+mod_coavail = lm(G3~coavail, data = stmath)
+summary(mod_coavail)
