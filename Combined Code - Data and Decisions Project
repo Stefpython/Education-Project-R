@@ -1,16 +1,34 @@
 #### Importing data
+
+getwd()
+setwd('~/Desktop')
+
+stmath = read.csv('student-mat.csv', header = T, sep = ',')
+
+dim(stmath)
+names(stmath)
+
 #### lm and diagnostics
 #### Trees and bagging
 #### Logit and Probit
-#### LDA and QDA
-#### kNN and Naive Bayes
 
-#0 - Data Manipulation
+getwd()
+setwd('~/Desktop')
+
+stmath = read.csv('student-mat.csv', header = T, sep = ',')
+
+dim(stmath)
+names(stmath)
+
 stmath = as.data.frame(subset(na.omit(stmath)))
-stmath = stmath[, -c(9, 10, 11, 31, 32)]
+stmath = as.data.frame(subset(na.omit(stmath), select = -c(G1, G2)))
+
+###Checking again
 str(stmath)
+dim(stmath)
 attach(stmath)
 
+###Factoring
 stmath$schoolsup = as.factor(ifelse(schoolsup=='no', 0,1))
 stmath$sex = as.factor(ifelse(sex== 'M', 0,1))
 stmath$guardian = as.factor(ifelse(guardian == 'father', 0,1))
@@ -21,57 +39,631 @@ stmath$nursery = as.factor(ifelse(nursery=='no', 0,1))
 stmath$higher = as.factor(ifelse(higher=='no', 0,1))
 stmath$internet = as.factor(ifelse(internet=='no', 0,1))
 stmath$romantic = as.factor(ifelse(romantic=='no', 0,1))
+stmath$school = as.factor(stmath$school)
+stmath$address = as.factor(stmath$address)
+stmath$famsize = as.factor(stmath$famsize)
+stmath$Pstatus = as.factor(stmath$Pstatus)
+stmath$Mjob = as.factor(stmath$Mjob)
+stmath$Fjob = as.factor(stmath$Fjob)
+stmath$reason = as.factor(stmath$reason)
 
-stmath$school = as.factor(ifelse(school=='GP', 0,1))
-stmath$address = as.factor(ifelse(address=='R', 0,1))
-stmath$famsize = as.factor(ifelse(famsize=='LE3', 0,1))
-stmath$Pstatus = as.factor(ifelse(Pstatus=='A', 0,1))
+# Creating testing and training data sets
+library(MASS)
+library(e1071)
+library(caret) 
+set.seed(14)
+
+###Probit
+###HO
+stratid=createDataPartition(stmath$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+stmathprobit_train=stmath[stratid,] ## Creating the Training dataset
+stmathprobit_test=stmath[-stratid,] ## Creating the test data set
+
+#Using the probit model on training data
+mod_probit_train=glm(paid~.,data=stmathprobit_train,family=binomial(link="probit"))
+summary(mod_probit_train)
+pred_probit=predict(mod_probit_train, newdata = stmathprobit_test,type = "response")
+
+###Lets look at prediction quality
+predclass_probit=rep(0,nrow(stmathprobit_test))
+predclass_probit[pred_probit>0.5]=1
+probit_conftable=confusionMatrix(as.factor(predclass_probit),as.factor(stmathprobit_test$paid), 
+                                 positive="1")
+
+###Testing
+probit_acc = mean(predclass_probit==stmathprobit_test$paid)
+probit_err = 1-probit_acc
+probit_sens = unname(probit_conftable$table[2,2]/(colSums(probit_conftable$table))[2])
+probit_spec =  unname(probit_conftable$table[1,1]/(colSums(probit_conftable$table))[1])
+probit_kap = unname(probit_conftable$overall['Kappa'])
+
+probit_ho_modelfitmetrics = c(probit_acc,probit_err,probit_sens,probit_spec,probit_kap)
+names(probit_ho_modelfitmetrics) = c('Accuracy', 'Error rate', 'Sensitivity', 'Specificity', 'Kappa')
+probit_ho_modelfitmetrics
+
+############################
+###Cross Validation
+require(caret)
+
+#10-fold
+set.seed(13)
+folds_probit_cv10 =createFolds(stmath$paid,k=10)
+probit_cv10 = sapply(folds_probit_cv10, function(x)
+{
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="probit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_probit_CV10=rep(0,nrow(testset))
+  predclass_probit_CV10[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_probit_CV10),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+probit_cv10_modelfitmetrics = apply(probit_cv10,1,mean)
+probit_cv10_modelfitmetrics
+
+############################
+###5-fold
+set.seed(12)
+folds_probit_cv5 =createFolds(stmath$paid,k=5)
+probit_cv5 = sapply(folds_probit_cv5, function(x)
+  
+{
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="probit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_probit_CV5=rep(0,nrow(testset))
+  predclass_probit_CV5[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_probit_CV5),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+probit_cv5_modelfitmetrics = apply(probit_cv5,1,mean)
+probit_cv5_modelfitmetrics
+
+############################
+###LOOCV
+set.seed(11)
+folds_probit_cvlo =createFolds(stmath$paid,k=394)
+probit_cvlo = sapply(folds_probit_cvlo, function(x)
+  
+{
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="probit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_probit_CVlo=rep(0,nrow(testset))
+  predclass_probit_CVlo[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_probit_CVlo),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+probit_cvlo_modelfitmetrics = apply(probit_cvlo,1,mean)
+probit_cvlo_modelfitmetrics
+
+
+###############################
+###Combination
+comp_probit = rbind(probit_ho_modelfitmetrics,probit_cv10_modelfitmetrics, probit_cv5_modelfitmetrics
+                    , probit_cvlo_modelfitmetrics)
+comp_probit
+
+##############################################################################################
+###Logit
+###HO
+set.seed(10)
+stratid=createDataPartition(stmath$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+stmathlogit_train=stmath[stratid,] ## Creating the Training dataset
+stmathlogit_test=stmath[-stratid,] ## Creating the test data set
+
+###Using the logit model on training data
+mod_logit_train=glm(paid~.,data=stmathlogit_train,family=binomial(link="logit"))
+summary(mod_logit_train)
+pred_logit=predict(mod_logit_train, newdata = stmathlogit_test,type = "response")
+
+###Lets look at prediction quality
+predclass_logit=rep(0,nrow(stmathlogit_test))
+
+predclass_logit[pred_logit>0.5]=1
+
+logit_conftable=confusionMatrix(as.factor(predclass_logit),as.factor(stmathlogit_test$paid), 
+                                positive="1")
+###Testing
+logit_acc = mean(predclass_logit==stmathlogit_test$paid)
+logit_err = 1-logit_acc
+logit_sens = unname(logit_conftable$table[2,2]/(colSums(logit_conftable$table))[2])
+logit_spec =  unname(logit_conftable$table[1,1]/(colSums(logit_conftable$table))[1])
+logit_kap = unname(logit_conftable$overall['Kappa'])
+
+logit_ho_modelfitmetrics = c(logit_acc,logit_err,logit_sens,logit_spec,logit_kap)
+names(logit_ho_modelfitmetrics) = c('Accuracy', 'Error rate', 'Sensitivity', 'Specificity', 'Kappa')
+
+logit_ho_modelfitmetrics
+################################
+###Cross Validation
+###10-fold
+set.seed(9)
+folds_logit_cv10 =createFolds(stmath$paid,k=10)
+logit_cv10 = sapply(folds_logit_cv10, function(x)
+  
+{
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="logit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_logit_CV10=rep(0,nrow(testset))
+  predclass_logit_CV10[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_logit_CV10),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+logit_cv10_modelfitmetrics = apply(logit_cv10,1,mean)
+logit_cv10_modelfitmetrics
+
+###########################
+###5-fold
+set.seed(8)
+folds_logit_cv5 =createFolds(stmath$paid,k=5)
+
+logit_cv5 = sapply(folds_logit_cv5, function(x)
+  
+{
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="logit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_logit_CV5=rep(0,nrow(testset))
+  predclass_logit_CV5[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_logit_CV5),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+logit_cv5_modelfitmetrics = apply(logit_cv5,1,mean)
+logit_cv5_modelfitmetrics
+
+##########################
+###LOOCV
+set.seed(7)
+folds_logit_cvlo =createFolds(stmath$paid,k=394)
+
+logit_cvlo = sapply(folds_logit_cvlo, function(x)
+  
+{
+  trainset=stmath[-x,]
+  testset=stmath[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="logit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_logit_CVlo=rep(0,nrow(testset))
+  predclass_logit_CVlo[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_logit_CVlo),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+logit_cvlo_modelfitmetrics = apply(logit_cvlo,1,mean)
+logit_cvlo_modelfitmetrics
+###########################################################
+###Combination 
+comp_logit = rbind(logit_ho_modelfitmetrics,logit_cv10_modelfitmetrics, logit_cv5_modelfitmetrics
+                   , logit_cvlo_modelfitmetrics)
+comp_logit
+################################################################################################
+###Comparing Probit and Logit
+
+comp_probit_logit = rbind(comp_probit, comp_logit)
+comp_probit_logit
+################################################################################################
+
+###Replicating the above with edited dataset, removing the negative coefficient variables
+###obtained by Random Forest
+
+###Removing the negative coefficient variables from the stmath dataset; (nursery and traveltime...)
+stmath_adj = as.data.frame(subset(na.omit(stmath), select = -c(nursery, freetime, absences, Fedu, 
+                                                               goout,school, guardian,romantic,internet, address,traveltime)))
+###Checking again
+str(stmath_adj)
+dim(stmath_adj)
+attach(stmath_adj)
+
+set.seed(6)
+
+###Probit_adjusted dataset
+###HO
+stratid_adj=createDataPartition(stmath_adj$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+stmath_adj_probit_train=stmath_adj[stratid_adj,] ## Creating the Training dataset
+stmath_adj_probit_test=stmath_adj[-stratid_adj,] ## Creating the test data set
+
+#Using the probit model on training data
+mod_adj_probit_train=glm(paid~.,data=stmath_adj_probit_train,family=binomial(link="probit"))
+summary(mod_adj_probit_train)
+pred_adj_probit=predict(mod_adj_probit_train, newdata = stmath_adj_probit_test,type = "response")
+
+###Lets look at prediction quality
+predclass_adj_probit=rep(0,nrow(stmath_adj_probit_test))
+predclass_adj_probit[pred_adj_probit>0.5]=1
+probit_adj_conftable=confusionMatrix(as.factor(predclass_adj_probit),as.factor(stmath_adj_probit_test$paid), 
+                                     positive="1")
+
+###Testing
+probit_adj_acc = mean(predclass_adj_probit==stmath_adj_probit_test$paid)
+probit_adj_err = 1-probit_adj_acc
+probit_adj_sens = unname(probit_adj_conftable$table[2,2]/(colSums(probit_adj_conftable$table))[2])
+probit_adj_spec =  unname(probit_adj_conftable$table[1,1]/(colSums(probit_adj_conftable$table))[1])
+probit_adj_kap = unname(probit_adj_conftable$overall['Kappa'])
+
+probit_adj_ho_modelfitmetrics = c(probit_adj_acc,probit_adj_err,probit_adj_sens,probit_adj_spec,probit_adj_kap)
+names(probit_adj_ho_modelfitmetrics) = c('Accuracy', 'Error rate', 'Sensitivity', 'Specificity', 'Kappa')
+probit_adj_ho_modelfitmetrics
+############################
+#10-fold
+set.seed(5)
+folds_probit_adj_cv10 =createFolds(stmath_adj$paid,k=10)
+probit_adj_cv10 = sapply(folds_probit_adj_cv10, function(x)
+{
+  trainset=stmath_adj[-x,]
+  testset=stmath_adj[x,]
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="probit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_adj_probit_CV10=rep(0,nrow(testset))
+  predclass_adj_probit_CV10[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_adj_probit_CV10),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+probit_adj_cv10_modelfitmetrics = apply(probit_adj_cv10,1,mean)
+probit_adj_cv10_modelfitmetrics
+############################
+###5-fold
+set.seed(4)
+folds_probit_adj_cv5 =createFolds(stmath_adj$paid,k=5)
+probit_adj_cv5 = sapply(folds_probit_adj_cv5, function(x)
+  
+{
+  trainset=stmath_adj[-x,]
+  testset=stmath_adj[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="probit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_probit_adj_CV5=rep(0,nrow(testset))
+  predclass_probit_adj_CV5[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_probit_adj_CV5),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+probit_adj_cv5_modelfitmetrics = apply(probit_adj_cv5,1,mean)
+probit_adj_cv5_modelfitmetrics
+############################
+###LOOCV
+set.seed(3)
+folds_probit_adj_cvlo =createFolds(stmath_adj$paid,k=394)
+probit_adj_cvlo = sapply(folds_probit_adj_cvlo, function(x)
+  
+{
+  trainset=stmath_adj[-x,]
+  testset=stmath_adj[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="probit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_probit_adj_CVlo=rep(0,nrow(testset))
+  predclass_probit_adj_CVlo[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_probit_adj_CVlo),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+probit_adj_cvlo_modelfitmetrics = apply(probit_adj_cvlo,1,mean)
+probit_adj_cvlo_modelfitmetrics
+###############################################################################################
+###Computation combination for probit adjusted dataset
+comp_probit_adj = rbind(probit_adj_ho_modelfitmetrics,probit_adj_cv10_modelfitmetrics, probit_adj_cv5_modelfitmetrics
+                        , probit_adj_cvlo_modelfitmetrics)
+
+comp_probit_adj
+###Logit_adjusted dataset
+###HO
+set.seed(30)
+stratid_logit_adj=createDataPartition(stmath_adj$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+stmath_logit_adj_train=stmath_adj[stratid_logit_adj,] ## Creating the Training dataset
+stmath_logit_adj_test=stmath_adj[-stratid_logit_adj,] ## Creating the test data set
+
+###Using the logit model on training data
+mod_logit_adj_train=glm(paid~.,data=stmath_logit_adj_train,family=binomial(link="logit"))
+summary(mod_logit_adj_train)
+pred_logit_adj=predict(mod_logit_adj_train, newdata = stmath_logit_adj_test,type = "response")
+
+###Lets look at prediction quality
+predclass_logit_adj=rep(0,nrow(stmath_logit_adj_test))
+
+predclass_logit_adj[pred_logit_adj>0.5]=1
+
+logit_adj_conftable=confusionMatrix(as.factor(predclass_logit_adj),as.factor(stmath_logit_adj_test$paid), 
+                                    positive="1")
+###Testing
+logit_adj_acc = mean(predclass_logit_adj==stmath_logit_adj_test$paid)
+logit_adj_err = 1-logit_adj_acc
+logit_adj_sens = unname(logit_adj_conftable$table[2,2]/(colSums(logit_adj_conftable$table))[2])
+logit_adj_spec =  unname(logit_adj_conftable$table[1,1]/(colSums(logit_adj_conftable$table))[1])
+logit_adj_kap = unname(logit_adj_conftable$overall['Kappa'])
+
+logit_adj_ho_modelfitmetrics = c(logit_adj_acc,logit_adj_err,logit_adj_sens,logit_adj_spec,logit_adj_kap)
+names(logit_adj_ho_modelfitmetrics) = c('Accuracy', 'Error rate', 'Sensitivity', 'Specificity', 'Kappa')
+
+logit_adj_ho_modelfitmetrics
+################################
+###Cross Validation
+###10-fold
+set.seed(29)
+folds_logit_adj_cv10 =createFolds(stmath_adj$paid,k=10)
+logit_adj_cv10 = sapply(folds_logit_adj_cv10, function(x)
+  
+{
+  trainset=stmath_adj[-x,]
+  testset=stmath_adj[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="logit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_logit_adj_CV10=rep(0,nrow(testset))
+  predclass_logit_adj_CV10[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_logit_adj_CV10),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+logit_adj_cv10_modelfitmetrics = apply(logit_adj_cv10,1,mean)
+logit_adj_cv10_modelfitmetrics
+
+###########################
+###5-fold
+set.seed(28)
+folds_logit_adj_cv5 =createFolds(stmath_adj$paid,k=5)
+
+logit_adj_cv5 = sapply(folds_logit_adj_cv5, function(x)
+  
+{
+  trainset=stmath_adj[-x,]
+  testset=stmath_adj[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="logit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_logit_adj_CV5=rep(0,nrow(testset))
+  predclass_logit_adj_CV5[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor(predclass_logit_adj_CV5),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+logit_adj_cv5_modelfitmetrics = apply(logit_adj_cv5,1,mean)
+logit_adj_cv5_modelfitmetrics
+##########################
+###LOOCV
+set.seed(27)
+folds_logit_adj_cvlo =createFolds(stmath_adj$paid,k=394)
+
+logit_adj_cvlo = sapply(folds_logit_adj_cvlo, function(x)
+  
+{
+  trainset=stmath_adj[-x,]
+  testset=stmath_adj[x,]
+  
+  
+  model=glm(paid~.,data=trainset,
+            family=binomial(link="logit"))
+  
+  ppred=predict(model, newdata = testset,type = "response")
+  
+  predclass_logit_adj_CVlo=rep(0,nrow(testset))
+  predclass_logit_adj_CVlo[ppred>0.5]=1
+  
+  obj=confusionMatrix(as.factor( predclass_logit_adj_CVlo),as.factor(testset$paid), 
+                      positive="1")
+  
+  metrics=c(obj$overall[1], (1-obj$overall[1]), obj$byClass['Sensitivity'],obj$byClass['Specificity'], unname(obj$overall['Kappa']))
+  names(metrics) = c('Accuracy', 'Error rate','Sensitivity','Specificity', 'Kappa')
+  return(metrics)
+})
+
+logit_adj_cvlo_modelfitmetrics = apply(logit_adj_cvlo,1,mean)
+logit_adj_cvlo_modelfitmetrics
+###############################################################################################
+###Computation Combination for the logit adjusted
+comp_logit_adj = rbind(logit_adj_ho_modelfitmetrics,logit_adj_cv10_modelfitmetrics, logit_adj_cv5_modelfitmetrics
+                       , logit_adj_cvlo_modelfitmetrics)
+comp_logit_adj
+
+###############################################################################################
+###Comparing Probit a
+nd Logit adjusted dataset
+
+comp_probit_logit_adj = rbind(comp_probit_adj, comp_logit_adj)
+comp_probit_logit_adj
+###############################################################################################
+###Comparing Probit and Logit adjusted and normal dataset
+comp_probit_logit_both = rbind(comp_probit_logit, comp_probit_logit_adj)
+comp_probit_logit_both
+###############################################################################################
+
+#### LDA and QDA
+#### kNN and Naive Bayes
+
+#0 - Data Manipulation
+
+getwd()
+setwd('~/Desktop')
+
+stmath = read.csv('student-mat.csv', header = T, sep = ',')
+
+dim(stmath)
+names(stmath)
+
+stmath_kNN_NB = stmath
+stmath_kNN_NB = as.data.frame(subset(na.omit(stmath_kNN_NB)))
+stmath_kNN_NB = stmath_kNN_NB[, -c(9, 10, 11, 31, 32)]
+str(stmath_kNN_NB)
+attach(stmath_kNN_NB)
+
+stmath_kNN_NB$schoolsup = as.factor(ifelse(schoolsup=='no', 0,1))
+stmath_kNN_NB$sex = as.factor(ifelse(sex== 'M', 0,1))
+stmath_kNN_NB$guardian = as.factor(ifelse(guardian == 'father', 0,1))
+stmath_kNN_NB$famsup = as.factor(ifelse(famsup=='no', 0,1))
+stmath_kNN_NB$paid = as.factor(ifelse(paid=='no', 0,1))
+stmath_kNN_NB$activities = as.factor(ifelse(activities=='no', 0,1))
+stmath_kNN_NB$nursery = as.factor(ifelse(nursery=='no', 0,1))
+stmath_kNN_NB$higher = as.factor(ifelse(higher=='no', 0,1))
+stmath_kNN_NB$internet = as.factor(ifelse(internet=='no', 0,1))
+stmath_kNN_NB$romantic = as.factor(ifelse(romantic=='no', 0,1))
+
+stmath_kNN_NB$school = as.factor(ifelse(school=='GP', 0,1))
+stmath_kNN_NB$address = as.factor(ifelse(address=='R', 0,1))
+stmath_kNN_NB$famsize = as.factor(ifelse(famsize=='LE3', 0,1))
+stmath_kNN_NB$Pstatus = as.factor(ifelse(Pstatus=='A', 0,1))
 
 ## kNN
 
 ## Normalizing our data
-normalize = function(x) {
+normalize_kNN_NB = function(x) {
   return((x-min(x))/(max(x)-min(x)))
 }
 
-non_num_var = stmath[, c(1,2,4,5,6,9,13,14,15,16,17,18,19,20)]
-num_var = stmath[, c(3,7,8,10,11,12,21,22,23,24,25,26,27,28)]
+non_num_var_kNN_NB = stmath_kNN_NB[, c(1,2,4,5,6,9,13,14,15,16,17,18,19,20)]
+num_var_kNN_NB = stmath_kNN_NB[, c(3,7,8,10,11,12,21,22,23,24,25,26,27,28)]
 
-Pnorm = as.data.frame(lapply(num_var, normalize))
-Pnormed=cbind(Pnorm, non_num_var)
-names(Pnormed)
+Pnorm_kNN_NB = as.data.frame(lapply(num_var_kNN_NB, normalize_kNN_NB))
+Pnormed_kNN_NB=cbind(Pnorm_kNN_NB, non_num_var_kNN_NB)
+names(Pnormed_kNN_NB)
 
 # Creating testing and training data sets
 
 library(caret) 
 set.seed(14)
-stratid=createDataPartition(Pnormed$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
-Normstmath_train=Pnormed[stratid,] ## Creating the Training dataset
-Normstmath_test=Pnormed[-stratid,] ## Creating the test data set
+stratid_kNN_NB=createDataPartition(Pnormed_kNN_NB$paid, p=0.75, list=FALSE) ## Create the partition again setting 75% to training
+Normstmath_kNN_NB_train=Pnormed_kNN_NB[stratid_kNN_NB,] ## Creating the Training dataset
+Normstmath_kNN_NB_test=Pnormed_kNN_NB[-stratid_kNN_NB,] ## Creating the test data set
 
 ## Run the KNN algorithm on the Training data set
 
 library(class)
 
-knn_mod = knn(train=Normstmath_train[,-23], test=Normstmath_test[,-23], cl=Normstmath_train[,23], k=16)
+knn_mod = knn(train=Normstmath_kNN_NB_train[,-23], test=Normstmath_kNN_NB_test[,-23], cl=Normstmath_kNN_NB_train[,23], k=16)
 
 ## Test model predictions using the confusion matrix
 
 library(e1071)
-confusionMatrix(as.factor(knn_mod),as.factor(Normstmath_test[,23]), 
+confusionMatrix(as.factor(knn_mod),as.factor(Normstmath_kNN_NB_test[,23]), 
                 positive="1")
 
 ## KNN with cross validation
-folds=createFolds(Pnormed$paid,k=10)
+folds_kNN_NB=createFolds(Pnormed_kNN_NB$paid,k=10)
 
-knn_cvaccuracy = sapply(folds, function(x){
-  trainset=Pnormed[-x,]
-  testset=Pnormed[x,]
+knn_cvaccuracy = sapply(folds_kNN_NB, function(x){
+  trainset=Pnormed_kNN_NB[-x,]
+  testset=Pnormed_kNN_NB[x,]
   model=knn(trainset[,-23], test=testset[,-23], cl=trainset[,23], k=16)
   obj=confusionMatrix(as.factor(model),as.factor(testset[,23]), 
                       positive="1")
-  metrics=c(obj$overall[1], obj$overall[2], obj$byClass[1], obj$byClass[2])
-  return(metrics)
+  metrics_kNN_NB=c(obj$overall[1], obj$overall[2], obj$byClass[1], obj$byClass[2])
+  return(metrics_kNN_NB)
 })
 
 knn_cvaccuracy
@@ -82,25 +674,25 @@ library(e1071)
 
 ## Holdout sampling apporach
 
-Normstmath_train_nb=Normstmath_train[,-23] ## Pulling the features out from the train set
-Normstmath_test_nb=Normstmath_test[,-23] ## Pulling the features set out of the test set
+Normstmath_kNN_NB_train_nb=Normstmath_kNN_NB_train[,-23] ## Pulling the features out from the train set
+Normstmath_kNN_NB_test_nb=Normstmath_kNN_NB_test[,-23] ## Pulling the features set out of the test set
 
-nbmath=naiveBayes(Normstmath_train_nb, as.factor(Normstmath_train[,23])) ## Run the Naive Bayes model
+nbmath=naiveBayes(Normstmath_kNN_NB_train_nb, as.factor(Normstmath_kNN_NB_train[,23])) ## Run the Naive Bayes model
 
-nbpred=predict(nbmath, Normstmath_test_nb, type="class") ## Generate Test Predictions
+nbpred=predict(nbmath, Normstmath_kNN_NB_test_nb, type="class") ## Generate Test Predictions
 
 
 ## Generate the confusion matrix
 
-confusionMatrix(as.factor(nbpred),as.factor(Normstmath_test[,23]), 
+confusionMatrix(as.factor(nbpred),as.factor(Normstmath_kNN_NB_test[,23]), 
                 positive="1")
 
 ## Naive Bayes with cross validation
-nb_folds=createFolds(Pnormed$paid,k=10)
+nb_folds=createFolds(Pnormed_kNN_NB$paid,k=10)
 
-nb_cvaccuracy = sapply(folds, function(x){
-  trainset=Pnormed[-x,]
-  testset=Pnormed[x,]
+nb_cvaccuracy = sapply(folds_kNN_NB, function(x){
+  trainset=Pnormed_kNN_NB[-x,]
+  testset=Pnormed_kNN_NB[x,]
   
   trainx=trainset[,-23]
   testx=testset[,-23]
@@ -118,42 +710,36 @@ nb_cvaccuracy
 
 ## Running kNN and Naive Bayes with variables removed
 
-remove(stmath)
+remove(stmath_kNN_NB)
 
-stmath = read.csv('student-mat.csv', header = T, sep = ',')
+stmath_kNN_NB = stmath
 
-
-dim(stmath)
-names(stmath)
+dim(stmath_kNN_NB)
+names(stmath_kNN_NB)
 
 #0 - Data Manipulation
-stmath = as.data.frame(subset(na.omit(stmath)))
-stmath = stmath[, -c(1, 8, 9, 10, 11, 12, 13, 20, 22, 23, 25, 26, 30, 31, 32)]
-str(stmath)
-attach(stmath)
+stmath_kNN_NB = as.data.frame(subset(na.omit(stmath_kNN_NB)))
+stmath_kNN_NB = stmath_kNN_NB[, -c(1, 8, 9, 10, 11, 12, 13, 20, 22, 23, 25, 26, 30, 31, 32)]
+str(stmath_kNN_NB)
+attach(stmath_kNN_NB)
 
-stmath$schoolsup = as.factor(ifelse(schoolsup=='no', 0,1))
-stmath$sex = as.factor(ifelse(sex== 'M', 0,1))
-stmath$famsup = as.factor(ifelse(famsup=='no', 0,1))
-stmath$paid = as.factor(ifelse(paid=='no', 0,1))
-stmath$activities = as.factor(ifelse(activities=='no', 0,1))
-stmath$higher = as.factor(ifelse(higher=='no', 0,1))
+stmath_kNN_NB$schoolsup = as.factor(ifelse(schoolsup=='no', 0,1))
+stmath_kNN_NB$sex = as.factor(ifelse(sex== 'M', 0,1))
+stmath_kNN_NB$famsup = as.factor(ifelse(famsup=='no', 0,1))
+stmath_kNN_NB$paid = as.factor(ifelse(paid=='no', 0,1))
+stmath_kNN_NB$activities = as.factor(ifelse(activities=='no', 0,1))
+stmath_kNN_NB$higher = as.factor(ifelse(higher=='no', 0,1))
 
-stmath$address = as.factor(ifelse(address=='R', 0,1))
-stmath$famsize = as.factor(ifelse(famsize=='LE3', 0,1))
-stmath$Pstatus = as.factor(ifelse(Pstatus=='A', 0,1))
+stmath_kNN_NB$address = as.factor(ifelse(address=='R', 0,1))
+stmath_kNN_NB$famsize = as.factor(ifelse(famsize=='LE3', 0,1))
+stmath_kNN_NB$Pstatus = as.factor(ifelse(Pstatus=='A', 0,1))
 
 ## kNN
 
-## Normalizing our data
-normalize = function(x) {
-  return((x-min(x))/(max(x)-min(x)))
-}
+LESSnon_num_var = stmath_kNN_NB[, c(1,3,4,5,9,10,11,12,13)]
+LESSnum_var = stmath_kNN_NB[, c(2,6,7,8,14,15,16,17,18)]
 
-LESSnon_num_var = stmath[, c(1,3,4,5,9,10,11,12,13)]
-LESSnum_var = stmath[, c(2,6,7,8,14,15,16,17,18)]
-
-LESSPnorm = as.data.frame(lapply(LESSnum_var, normalize))
+LESSPnorm = as.data.frame(lapply(LESSnum_var, normalize_kNN_NB))
 LESSPnormed=cbind(LESSPnorm, LESSnon_num_var)
 names(LESSPnormed)
 
