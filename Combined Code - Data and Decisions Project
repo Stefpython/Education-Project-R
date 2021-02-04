@@ -867,7 +867,7 @@ head(pred_lda_ho$class)
 
 lda_ho_conftable = table(pred_lda_ho$class, stmathlda_test$paid)
 lda_ho_conftable2 = confusionMatrix(as.factor(pred_lda_ho$class),as.factor(stmathlda_test$paid), 
-                                positive="1")
+                                    positive="1")
 lda_ho_conftable2
 
 lda_ho_acc = mean(pred_lda_ho$class==stmathlda_test$paid)
@@ -1050,7 +1050,7 @@ normalize = function(x) {
 
 non_num_var = stmath[,c(1,2,4,5,6,9,10,11,12,16,17,18,19,20,21,22,23)]
 num_var = stmath[, c(3,7,8, 13, 14, 15, 24, 25, 26, 27, 28, 29, 30, 31) ]
-  
+
 Pnorm = as.data.frame(lapply(num_var, normalize))
 Pnormed=cbind(Pnorm, non_num_var)
 names(Pnormed)
@@ -1068,7 +1068,7 @@ summary(mod_svm_lin)
 
 svm_pred_lin = predict(mod_svm_lin, newdata=Normstmath_test)
 svm_lin_conftable = confusionMatrix(as.factor(svm_pred_lin),as.factor(Normstmath_test$paid), 
-                positive="1")
+                                    positive="1")
 
 svmlin_ho_acc = unname(svm_lin_conftable$overall[1])
 svmlin_ho_err = 1-svmlin_ho_acc
@@ -1086,7 +1086,7 @@ summary(mod_svm_poly)
 
 svm_pred_poly = predict(mod_svm_poly, newdata=Normstmath_test)
 svm_pol_conftable = confusionMatrix(as.factor(svm_pred_poly),as.factor(Normstmath_test$paid), 
-                positive="1")
+                                    positive="1")
 
 svmpol_ho_acc = unname(svm_pol_conftable$overall[1])
 svmpol_ho_err = 1-svmpol_ho_acc
@@ -1104,7 +1104,7 @@ summary(mod_svm_rad)
 
 svm_pred_rad =predict(mod_svm_rad, newdata=Normstmath_test)
 svm_rad_conftable = confusionMatrix(as.factor(svm_pred_rad),as.factor(Normstmath_test$paid), 
-                positive="1")
+                                    positive="1")
 
 svmrad_ho_acc = unname(svm_rad_conftable$overall[1])
 svmrad_ho_err = 1-svmrad_ho_acc
@@ -1129,7 +1129,7 @@ svm_cv10 = sapply(svm_folds_cv10, function(x){
   trainset=Pnormed[-x,]
   testset=Pnormed[x,]
   
-  model=svm(as.factor(trainset$paid)~., data=trainset, kernel="radial", cost=20, scale=FALSE)
+  model=svm(as.factor(trainset$paid)~., data=trainset, kernel="polynomial", cost=20, scale=FALSE)
   ppred=predict(model, newdata=testset)
   obj=confusionMatrix(as.factor(ppred),as.factor(testset$paid), 
                       positive="1")
@@ -1148,7 +1148,7 @@ svm_cv5 = sapply(svm_folds_cv5, function(x){
   trainset=Pnormed[-x,]
   testset=Pnormed[x,]
   
-  model=svm(as.factor(trainset$paid)~., data=trainset, kernel="radial", cost=20, scale=FALSE)
+  model=svm(as.factor(trainset$paid)~., data=trainset, kernel="polynomial", cost=20, scale=FALSE)
   ppred=predict(model, newdata=testset)
   obj=confusionMatrix(as.factor(ppred),as.factor(testset$paid), 
                       positive="1")
@@ -1167,7 +1167,7 @@ svm_cvlo = sapply(svm_folds_cvlo, function(x){
   trainset=Pnormed[-x,]
   testset=Pnormed[x,]
   
-  model=svm(as.factor(trainset$paid)~., data=trainset, kernel="radial", cost=20, scale=FALSE)
+  model=svm(as.factor(trainset$paid)~., data=trainset, kernel="polynomial", cost=20, scale=FALSE)
   ppred=predict(model, newdata=testset)
   obj=confusionMatrix(as.factor(ppred),as.factor(testset$paid), 
                       positive="1")
