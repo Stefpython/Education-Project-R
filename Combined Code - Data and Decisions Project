@@ -11,7 +11,7 @@ names(stmath)
 
 #### lm and diagnostics
 
-stmath_numeric= student.mat
+stmath_numeric= stmath
 stmath_numeric= as.data.frame(subset(na.omit(stmath_numeric), select = -c(G1, G2)))
 stmath_numeric$schoolsup = ifelse(schoolsup=='no', 0,1)
 stmath_numeric$sex = ifelse(sex== 'M', 0,1)
